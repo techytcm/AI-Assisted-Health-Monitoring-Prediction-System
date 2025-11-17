@@ -56,7 +56,7 @@ typedef struct {
 } HealthRecord;
 
 typedef struct {
-    char username[40];
+    char username[50];
     char password[60];
 } Admin;
 
@@ -189,7 +189,7 @@ int main() {
                 setColor(COLOR_CYAN);
                 printf("||  Version: 1.0                                             ||\n");
                 printf("||  Developed in: C Language                                 ||\n");
-                printf("||  Developed by: techytcm                                   ||\n");
+                printf("||  Developed by: TCM                                        ||\n");
                 printf("||  Features:                                                ||\n");
                 printf("||    * Multi-user role-based system                         ||\n");
                 printf("||    * Real-time vital monitoring                           ||\n");
