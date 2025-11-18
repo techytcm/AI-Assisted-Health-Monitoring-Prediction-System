@@ -14,26 +14,26 @@
     #define SLEEP(x) usleep(x * 1000)
 #endif
 
-// Structure denotations
+// Structure Definitions
 typedef struct {
     int id;
     char name[50];
-    char username[30];
-    char password[60];
-    char specialization[60];
+    char email[50];
+    char passwordHash[65];
+    char specialization[50];
     char phone[15];
     int active;
 } Doctor;
 
 typedef struct {
     int id;
-    char name[50];
-    char username[30];
-    char password[60];
+    char name[100];
+    char email[100];
+    char passwordHash[65];
     int age;
-    char gender[11];
+    char gender[10];
     char phone[15];
-    char address[150];
+    char address[200];
     char bloodGroup[5];
     int active;
 } Patient;
@@ -56,16 +56,16 @@ typedef struct {
 } HealthRecord;
 
 typedef struct {
-    char username[40];
-    char password[60];
+    char username[50];
+    char password[50];
 } Admin;
 
-// Global Variables and Constants
+// Global Variables
 Admin admin = {"tcm9798", "tcm@4626"};
 int loggedInDoctorId = -1;
 int loggedInPatientId = -1;
 
-// Function Declarations
+// Function Prototypes
 void initializeFiles();
 void enableWindowsColors();
 void setColor(int color);
@@ -76,7 +76,15 @@ void printBox(const char* message, int color);
 void animatedText(const char* text, int speed);
 void pressAnyKey();
 
-// Admin Functions Declarations
+// Validation Functions
+int isValidEmail(const char* email);
+int isValidPhone(const char* phone);
+int emailExists(const char* email, const char* userType);
+int phoneExists(const char* phone, const char* userType);
+void hashPassword(const char* password, char* hash);
+int verifyPassword(const char* password, const char* hash);
+
+// Admin Functions
 void adminLogin();
 void adminPanel();
 void addDoctor();
@@ -87,7 +95,7 @@ void removePatient();
 void viewAllPatients();
 void viewAllRecords();
 
-// Doctor Functions Declarations
+// Doctor Functions
 void doctorLogin();
 void doctorPanel();
 void enterVitals();
@@ -95,24 +103,26 @@ void viewPatientHistory();
 void viewMyPatients();
 void generateHealthReport(int patientId);
 
-// Patient Functions Declarations
+// Patient Functions
 void patientLogin();
 void patientPanel();
 void viewMyProfile();
 void viewMyHealthReports();
 void viewMyAnalytics();
 
-// Utility Functions Declarations
+// Utility Functions
 int getNextId(const char* filename);
 void getCurrentDate(char* buffer);
 int calculateRiskScore(HealthRecord rec);
 void determineRiskLevel(HealthRecord* rec);
 void displayVitalStatus(float value, float min, float max, const char* name);
 Patient getPatientById(int id);
+Patient getPatientByEmail(const char* email);
 Doctor getDoctorById(int id);
+Doctor getDoctorByEmail(const char* email);
 void trim(char* str);
 
-// Color codes (for Windows)
+// Color codes
 #define COLOR_RED 12
 #define COLOR_GREEN 10
 #define COLOR_YELLOW 14
@@ -134,7 +144,8 @@ int main() {
 
     while(1) {
         system(CLEAR);
-        printHeader("Health Monitoring & Early Disease Prediction System");
+        printHeader("AI-Assisted Health Monitoring & Prediction System");
+
         printf("\n");
         setColor(COLOR_CYAN);
         printf("================================================================\n");
@@ -185,17 +196,23 @@ int main() {
                 break;
             case 4:
                 system(CLEAR);
-                printHeader("Health Monitoring & Early Disease Prediction System");
+                printHeader("ABOUT SYSTEM");
                 setColor(COLOR_CYAN);
-                printf("||  Version: 1.0                                             ||\n");
+                printf("\n================================================================\n");
+                printf("||  AI-Assisted Health Monitoring & Prediction System        ||\n");
+                printf("================================================================\n");
+                printf("||  Version: 2.0 - Enhanced Security Edition                 ||\n");
                 printf("||  Developed in: C Language                                 ||\n");
-                printf("||  Developed by: techytcm                                   ||\n");
+                printf("||  Developed by: techytcm                                 ||\n");
                 printf("||  Features:                                                ||\n");
                 printf("||    * Multi-user role-based system                         ||\n");
                 printf("||    * Real-time vital monitoring                           ||\n");
                 printf("||    * AI-powered risk prediction                           ||\n");
                 printf("||    * Comprehensive health analytics                       ||\n");
                 printf("||    * Automated report generation                          ||\n");
+                printf("||    * Email-based authentication                           ||\n");
+                printf("||    * Password hashing for security                        ||\n");
+                printf("||    * Phone number validation                              ||\n");
                 printf("================================================================\n");
                 resetColor();
                 pressAnyKey();
@@ -203,7 +220,7 @@ int main() {
             case 5:
                 loadingAnimation("Shutting down system");
                 setColor(COLOR_GREEN);
-                printf("\n[SUCCESS] Thank you for using Health Monitoring & Early Disease Prediction System!\n");
+                printf("\n[SUCCESS] Thank you for using AI-Assisted Health Monitoring & Prediction System!\n");
                 resetColor();
                 return 0;
             default:
@@ -231,7 +248,6 @@ void initializeFiles() {
 
 void enableWindowsColors() {
     #ifdef _WIN32
-    // Set console to UTF-8 for better character support
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
     #endif
@@ -247,8 +263,168 @@ void setColor(int color) {
 void resetColor() {
     #ifdef _WIN32
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(hConsole, 7); // Default white color
+    SetConsoleTextAttribute(hConsole, 7);
     #endif
+}
+
+// ==================== VALIDATION FUNCTIONS ====================
+int isValidEmail(const char* email) {
+    int atCount = 0, dotAfterAt = 0;
+    int len = strlen(email);
+    int atPos = -1;
+
+    if(len < 5) return 0; // Minimum: a@b.c
+
+    // Check for @ symbol
+    for(int i = 0; i < len; i++) {
+        if(email[i] == '@') {
+            atCount++;
+            atPos = i;
+        }
+    }
+
+    if(atCount != 1 || atPos == 0 || atPos == len - 1) return 0;
+
+    // Check for dot after @
+    for(int i = atPos + 1; i < len; i++) {
+        if(email[i] == '.') {
+            dotAfterAt = 1;
+            if(i == atPos + 1 || i == len - 1) return 0; // Dot right after @ or at end
+            break;
+        }
+    }
+
+    if(!dotAfterAt) return 0;
+
+    // Check for valid characters
+    for(int i = 0; i < len; i++) {
+        char c = email[i];
+        if(!isalnum(c) && c != '@' && c != '.' && c != '_' && c != '-') {
+            return 0;
+        }
+    }
+
+    // Check domain extension (at least 2 chars after last dot)
+    int lastDot = -1;
+    for(int i = len - 1; i >= 0; i--) {
+        if(email[i] == '.') {
+            lastDot = i;
+            break;
+        }
+    }
+
+    if(lastDot == -1 || len - lastDot < 3) return 0;
+
+    return 1;
+}
+
+int isValidPhone(const char* phone) {
+    int len = strlen(phone);
+
+    // Phone should be 10-15 digits
+    if(len < 10 || len > 15) return 0;
+
+    // Check if all characters are digits or valid symbols
+    for(int i = 0; i < len; i++) {
+        if(!isdigit(phone[i]) && phone[i] != '+' && phone[i] != '-' && phone[i] != ' ') {
+            return 0;
+        }
+    }
+
+    // Count actual digits
+    int digitCount = 0;
+    for(int i = 0; i < len; i++) {
+        if(isdigit(phone[i])) digitCount++;
+    }
+
+    if(digitCount < 10 || digitCount > 15) return 0;
+
+    return 1;
+}
+
+int emailExists(const char* email, const char* userType) {
+    FILE *fp;
+
+    if(strcmp(userType, "doctor") == 0) {
+        Doctor doc;
+        fp = fopen("doctors.dat", "rb");
+        if(fp) {
+            while(fread(&doc, sizeof(Doctor), 1, fp)) {
+                if(strcmp(doc.email, email) == 0 && doc.active == 1) {
+                    fclose(fp);
+                    return 1;
+                }
+            }
+            fclose(fp);
+        }
+    } else if(strcmp(userType, "patient") == 0) {
+        Patient pat;
+        fp = fopen("patients.dat", "rb");
+        if(fp) {
+            while(fread(&pat, sizeof(Patient), 1, fp)) {
+                if(strcmp(pat.email, email) == 0 && pat.active == 1) {
+                    fclose(fp);
+                    return 1;
+                }
+            }
+            fclose(fp);
+        }
+    }
+
+    return 0;
+}
+
+int phoneExists(const char* phone, const char* userType) {
+    FILE *fp;
+
+    if(strcmp(userType, "doctor") == 0) {
+        Doctor doc;
+        fp = fopen("doctors.dat", "rb");
+        if(fp) {
+            while(fread(&doc, sizeof(Doctor), 1, fp)) {
+                if(strcmp(doc.phone, phone) == 0 && doc.active == 1) {
+                    fclose(fp);
+                    return 1;
+                }
+            }
+            fclose(fp);
+        }
+    } else if(strcmp(userType, "patient") == 0) {
+        Patient pat;
+        fp = fopen("patients.dat", "rb");
+        if(fp) {
+            while(fread(&pat, sizeof(Patient), 1, fp)) {
+                if(strcmp(pat.phone, phone) == 0 && pat.active == 1) {
+                    fclose(fp);
+                    return 1;
+                }
+            }
+            fclose(fp);
+        }
+    }
+
+    return 0;
+}
+
+void hashPassword(const char* password, char* hash) {
+    // Simple hash function (for production, use bcrypt or similar)
+    unsigned long hashValue = 5381;
+    int c;
+    const char* str = password;
+
+    while ((c = *str++)) {
+        hashValue = ((hashValue << 5) + hashValue) + c;
+    }
+
+    // Convert to hex string
+    sprintf(hash, "%016lx%016lx%016lx%016lx",
+            hashValue, hashValue * 31, hashValue * 17, hashValue * 13);
+}
+
+int verifyPassword(const char* password, const char* hash) {
+    char testHash[65];
+    hashPassword(password, testHash);
+    return strcmp(testHash, hash) == 0;
 }
 
 // ==================== ANIMATION FUNCTIONS ====================
@@ -295,7 +471,7 @@ void animatedText(const char* text, int speed) {
 
 void pressAnyKey() {
     setColor(COLOR_YELLOW);
-    printf("\nClick Enter to continue...");
+    printf("\nPress Enter to continue...");
     resetColor();
     getchar();
 }
@@ -322,7 +498,7 @@ void adminLogin() {
     loadingAnimation("Authenticating");
 
     if(strcmp(username, admin.username) == 0 && strcmp(password, admin.password) == 0) {
-        printBox("[SUCCESS] Login Successful! Welcome TCM.", COLOR_GREEN);
+        printBox("[SUCCESS] Login Successful! Welcome Admin.", COLOR_GREEN);
         SLEEP(1000);
         adminPanel();
     } else {
@@ -380,6 +556,7 @@ void adminPanel() {
 void addDoctor() {
     Doctor doc;
     FILE *fp;
+    char password[50];
 
     system(CLEAR);
     printHeader("ADD NEW DOCTOR");
@@ -395,21 +572,72 @@ void addDoctor() {
     fgets(doc.name, sizeof(doc.name), stdin);
     trim(doc.name);
 
-    printf("| Username: ");
-    scanf("%s", doc.username);
-    getchar();
+    // Email validation
+    while(1) {
+        printf("| Email (will be used for login): ");
+        scanf("%s", doc.email);
+        getchar();
 
-    printf("| Password: ");
-    scanf("%s", doc.password);
-    getchar();
+        if(!isValidEmail(doc.email)) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Invalid email format! Try again.\n");
+            resetColor();
+            continue;
+        }
+
+        if(emailExists(doc.email, "doctor")) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Email already registered! Try another.\n");
+            resetColor();
+            continue;
+        }
+
+        break;
+    }
+
+    // Password with hashing
+    while(1) {
+        printf("| Password (min 6 characters): ");
+        scanf("%s", password);
+        getchar();
+
+        if(strlen(password) < 6) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Password too short! Minimum 6 characters.\n");
+            resetColor();
+            continue;
+        }
+
+        hashPassword(password, doc.passwordHash);
+        break;
+    }
 
     printf("| Specialization: ");
     fgets(doc.specialization, sizeof(doc.specialization), stdin);
     trim(doc.specialization);
 
-    printf("| Phone: ");
-    scanf("%s", doc.phone);
-    getchar();
+    // Phone validation
+    while(1) {
+        printf("| Phone (10-15 digits): ");
+        scanf("%s", doc.phone);
+        getchar();
+
+        if(!isValidPhone(doc.phone)) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Invalid phone number! Use 10-15 digits.\n");
+            resetColor();
+            continue;
+        }
+
+        if(phoneExists(doc.phone, "doctor")) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Phone already registered! Try another.\n");
+            resetColor();
+            continue;
+        }
+
+        break;
+    }
 
     setColor(COLOR_CYAN);
     printf("+--------------------------------------------------------------+\n");
@@ -420,7 +648,10 @@ void addDoctor() {
         fwrite(&doc, sizeof(Doctor), 1, fp);
         fclose(fp);
         loadingAnimation("Saving doctor information");
-        printBox("[SUCCESS] Doctor added successfully!", COLOR_GREEN);
+
+        char msg[150];
+        sprintf(msg, "[SUCCESS] Doctor registered! Login Email: %s", doc.email);
+        printBox(msg, COLOR_GREEN);
     } else {
         printBox("[ERROR] Error saving doctor!", COLOR_RED);
     }
@@ -429,7 +660,8 @@ void addDoctor() {
 }
 
 void removeDoctor() {
-    int id, found = 0;
+    char email[100];
+    int found = 0;
     Doctor doc;
     FILE *fp, *temp;
 
@@ -437,9 +669,9 @@ void removeDoctor() {
     printHeader("REMOVE DOCTOR");
 
     setColor(COLOR_YELLOW);
-    printf("\nEnter Doctor ID to remove: ");
+    printf("\nEnter Doctor Email to remove: ");
     resetColor();
-    scanf("%d", &id);
+    scanf("%s", email);
     getchar();
 
     fp = fopen("doctors.dat", "rb");
@@ -447,7 +679,7 @@ void removeDoctor() {
 
     if(fp && temp) {
         while(fread(&doc, sizeof(Doctor), 1, fp)) {
-            if(doc.id == id && doc.active == 1) {
+            if(strcmp(doc.email, email) == 0 && doc.active == 1) {
                 found = 1;
                 doc.active = 0;
             }
@@ -482,21 +714,21 @@ void viewAllDoctors() {
     fp = fopen("doctors.dat", "rb");
     if(fp) {
         setColor(COLOR_CYAN);
-        printf("\n================================================================\n");
-        printf("| ID | Name              | Specialization   | Phone           |\n");
-        printf("================================================================\n");
+        printf("\n=================================================================================\n");
+        printf("| ID | Name              | Email                  | Specialization | Phone     |\n");
+        printf("=================================================================================\n");
         resetColor();
 
         while(fread(&doc, sizeof(Doctor), 1, fp)) {
             if(doc.active == 1) {
-                printf("|%-4d| %-17s | %-16s | %-15s |\n",
-                       doc.id, doc.name, doc.specialization, doc.phone);
+                printf("|%-4d| %-17s | %-22s | %-14s | %-9s |\n",
+                       doc.id, doc.name, doc.email, doc.specialization, doc.phone);
                 count++;
             }
         }
 
         setColor(COLOR_CYAN);
-        printf("================================================================\n");
+        printf("=================================================================================\n");
         resetColor();
         setColor(COLOR_GREEN);
         printf("\nTotal Doctors: %d\n", count);
@@ -512,6 +744,7 @@ void viewAllDoctors() {
 void addPatient() {
     Patient pat;
     FILE *fp;
+    char password[50];
 
     system(CLEAR);
     printHeader("ADD NEW PATIENT");
@@ -527,13 +760,45 @@ void addPatient() {
     fgets(pat.name, sizeof(pat.name), stdin);
     trim(pat.name);
 
-    printf("| Username: ");
-    scanf("%s", pat.username);
-    getchar();
+    // Email validation
+    while(1) {
+        printf("| Email (will be used for login): ");
+        scanf("%s", pat.email);
+        getchar();
 
-    printf("| Password: ");
-    scanf("%s", pat.password);
-    getchar();
+        if(!isValidEmail(pat.email)) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Invalid email format! Try again.\n");
+            resetColor();
+            continue;
+        }
+
+        if(emailExists(pat.email, "patient")) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Email already registered! Try another.\n");
+            resetColor();
+            continue;
+        }
+
+        break;
+    }
+
+    // Password with hashing
+    while(1) {
+        printf("| Password (min 6 characters): ");
+        scanf("%s", password);
+        getchar();
+
+        if(strlen(password) < 6) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Password too short! Minimum 6 characters.\n");
+            resetColor();
+            continue;
+        }
+
+        hashPassword(password, pat.passwordHash);
+        break;
+    }
 
     printf("| Age: ");
     scanf("%d", &pat.age);
@@ -543,13 +808,32 @@ void addPatient() {
     scanf("%s", pat.gender);
     getchar();
 
-    printf("| Blood Group: ");
+    printf("| Blood Group (A+/A-/B+/B-/O+/O-/AB+/AB-): ");
     scanf("%s", pat.bloodGroup);
     getchar();
 
-    printf("| Phone: ");
-    scanf("%s", pat.phone);
-    getchar();
+    // Phone validation
+    while(1) {
+        printf("| Phone (10-15 digits): ");
+        scanf("%s", pat.phone);
+        getchar();
+
+        if(!isValidPhone(pat.phone)) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Invalid phone number! Use 10-15 digits.\n");
+            resetColor();
+            continue;
+        }
+
+        if(phoneExists(pat.phone, "patient")) {
+            setColor(COLOR_RED);
+            printf("| [ERROR] Phone already registered! Try another.\n");
+            resetColor();
+            continue;
+        }
+
+        break;
+    }
 
     printf("| Address: ");
     fgets(pat.address, sizeof(pat.address), stdin);
@@ -564,7 +848,10 @@ void addPatient() {
         fwrite(&pat, sizeof(Patient), 1, fp);
         fclose(fp);
         loadingAnimation("Saving patient information");
-        printBox("[SUCCESS] Patient registered successfully!", COLOR_GREEN);
+
+        char msg[150];
+        sprintf(msg, "[SUCCESS] Patient registered! Login Email: %s", pat.email);
+        printBox(msg, COLOR_GREEN);
     } else {
         printBox("[ERROR] Error saving patient!", COLOR_RED);
     }
@@ -573,7 +860,8 @@ void addPatient() {
 }
 
 void removePatient() {
-    int id, found = 0;
+    char email[100];
+    int found = 0;
     Patient pat;
     FILE *fp, *temp;
 
@@ -581,9 +869,9 @@ void removePatient() {
     printHeader("REMOVE PATIENT");
 
     setColor(COLOR_YELLOW);
-    printf("\nEnter Patient ID to remove: ");
+    printf("\nEnter Patient Email to remove: ");
     resetColor();
-    scanf("%d", &id);
+    scanf("%s", email);
     getchar();
 
     fp = fopen("patients.dat", "rb");
@@ -591,7 +879,7 @@ void removePatient() {
 
     if(fp && temp) {
         while(fread(&pat, sizeof(Patient), 1, fp)) {
-            if(pat.id == id && pat.active == 1) {
+            if(strcmp(pat.email, email) == 0 && pat.active == 1) {
                 found = 1;
                 pat.active = 0;
             }
@@ -626,21 +914,21 @@ void viewAllPatients() {
     fp = fopen("patients.dat", "rb");
     if(fp) {
         setColor(COLOR_CYAN);
-        printf("\n========================================================================\n");
-        printf("| ID | Name              | Age | Gender | Blood | Phone          |\n");
-        printf("========================================================================\n");
+        printf("\n==========================================================================================\n");
+        printf("| ID | Name              | Email                  | Age | Gender | Blood | Phone     |\n");
+        printf("==========================================================================================\n");
         resetColor();
 
         while(fread(&pat, sizeof(Patient), 1, fp)) {
             if(pat.active == 1) {
-                printf("|%-4d| %-17s | %-3d | %-6s | %-5s | %-14s |\n",
-                       pat.id, pat.name, pat.age, pat.gender, pat.bloodGroup, pat.phone);
+                printf("|%-4d| %-17s | %-22s | %-3d | %-6s | %-5s | %-9s |\n",
+                       pat.id, pat.name, pat.email, pat.age, pat.gender, pat.bloodGroup, pat.phone);
                 count++;
             }
         }
 
         setColor(COLOR_CYAN);
-        printf("========================================================================\n");
+        printf("==========================================================================================\n");
         resetColor();
         setColor(COLOR_GREEN);
         printf("\nTotal Patients: %d\n", count);
@@ -701,7 +989,7 @@ void viewAllRecords() {
 
 // ==================== DOCTOR FUNCTIONS ====================
 void doctorLogin() {
-    char username[50], password[50];
+    char email[100], password[50];
     Doctor doc;
     FILE *fp;
     int found = 0;
@@ -712,8 +1000,8 @@ void doctorLogin() {
     setColor(COLOR_CYAN);
     printf("\n+-- Enter Credentials -----------------------------------------+\n");
     resetColor();
-    printf("| Username: ");
-    scanf("%s", username);
+    printf("| Email: ");
+    scanf("%s", email);
     printf("| Password: ");
     scanf("%s", password);
     setColor(COLOR_CYAN);
@@ -726,8 +1014,8 @@ void doctorLogin() {
     fp = fopen("doctors.dat", "rb");
     if(fp) {
         while(fread(&doc, sizeof(Doctor), 1, fp)) {
-            if(strcmp(doc.username, username) == 0 &&
-               strcmp(doc.password, password) == 0 &&
+            if(strcmp(doc.email, email) == 0 &&
+               verifyPassword(password, doc.passwordHash) &&
                doc.active == 1) {
                 found = 1;
                 loggedInDoctorId = doc.id;
@@ -744,7 +1032,7 @@ void doctorLogin() {
         SLEEP(1000);
         doctorPanel();
     } else {
-        printBox("[ERROR] Invalid credentials!", COLOR_RED);
+        printBox("[ERROR] Invalid email or password!", COLOR_RED);
         SLEEP(1500);
     }
 }
@@ -760,7 +1048,7 @@ void doctorPanel() {
         setColor(COLOR_GREEN);
         printf("\nWelcome, Dr. %s\n", doc.name);
         setColor(COLOR_CYAN);
-        printf("Specialization: %s\n", doc.specialization);
+        printf("Email: %s | Specialization: %s\n", doc.email, doc.specialization);
         resetColor();
 
         setColor(COLOR_BLUE);
@@ -823,7 +1111,7 @@ void enterVitals() {
     if(fp) {
         while(fread(&pat, sizeof(Patient), 1, fp)) {
             if(pat.active == 1) {
-                printf("  ID: %d - %s\n", pat.id, pat.name);
+                printf("  ID: %d - %s (%s)\n", pat.id, pat.name, pat.email);
             }
         }
         fclose(fp);
@@ -884,12 +1172,10 @@ void enterVitals() {
     printf("+--------------------------------------------------------------+\n");
     resetColor();
 
-    // AI Risk Calculation
     loadingAnimation("Analyzing vitals with AI");
     rec.risk_Score = calculateRiskScore(rec);
     determineRiskLevel(&rec);
 
-    // Display immediate analysis
     setColor(COLOR_MAGENTA);
     printf("\n===============================================================\n");
     printf("||              AI RISK ANALYSIS RESULT                      ||\n");
@@ -920,7 +1206,6 @@ void enterVitals() {
     printf("===============================================================\n");
     resetColor();
 
-    // Save record
     fp = fopen("health_records.dat", "ab");
     if(fp) {
         fwrite(&rec, sizeof(HealthRecord), 1, fp);
@@ -957,7 +1242,8 @@ void viewPatientHistory() {
     }
 
     setColor(COLOR_GREEN);
-    printf("\nPatient: %s (Age: %d, Blood Group: %s)\n", pat.name, pat.age, pat.bloodGroup);
+    printf("\nPatient: %s (Email: %s, Age: %d, Blood: %s)\n",
+           pat.name, pat.email, pat.age, pat.bloodGroup);
     resetColor();
 
     fp = fopen("health_records.dat", "rb");
@@ -1029,21 +1315,21 @@ void viewMyPatients() {
     }
 
     setColor(COLOR_CYAN);
-    printf("\n========================================================================\n");
-    printf("| ID | Name              | Age | Gender | Blood | Phone         |\n");
-    printf("========================================================================\n");
+    printf("\n==========================================================================================\n");
+    printf("| ID | Name              | Email                  | Age | Gender | Blood | Phone     |\n");
+    printf("==========================================================================================\n");
     resetColor();
 
     for(int i = 0; i < count; i++) {
         pat = getPatientById(patientIds[i]);
         if(pat.id != 0) {
-            printf("|%-4d| %-17s | %-3d | %-6s | %-5s | %-13s |\n",
-                   pat.id, pat.name, pat.age, pat.gender, pat.bloodGroup, pat.phone);
+            printf("|%-4d| %-17s | %-22s | %-3d | %-6s | %-5s | %-9s |\n",
+                   pat.id, pat.name, pat.email, pat.age, pat.gender, pat.bloodGroup, pat.phone);
         }
     }
 
     setColor(COLOR_CYAN);
-    printf("========================================================================\n");
+    printf("==========================================================================================\n");
     resetColor();
     setColor(COLOR_GREEN);
     printf("\nTotal Patients: %d\n", count);
@@ -1103,6 +1389,7 @@ void generateHealthReport(int patientId) {
     printf("================================================================\n");
     resetColor();
     printf("|| Name: %-53s||\n", pat.name);
+    printf("|| Email: %-52s||\n", pat.email);
     printf("|| Patient ID: %-47d||\n", pat.id);
     printf("|| Age: %-3d  Gender: %-6s  Blood Group: %-5s             ||\n",
            pat.age, pat.gender, pat.bloodGroup);
@@ -1246,7 +1533,7 @@ void generateHealthReport(int patientId) {
     char currentDate[20];
     getCurrentDate(currentDate);
     printf("%-41s|\n", currentDate);
-    printf("| System: AI Health Monitoring v1.0                          |\n");
+    printf("| System: AI Health Monitoring v2.0                          |\n");
     printf("+------------------------------------------------------------+\n");
     resetColor();
 
@@ -1255,7 +1542,7 @@ void generateHealthReport(int patientId) {
 
 // ==================== PATIENT FUNCTIONS ====================
 void patientLogin() {
-    char username[50], password[50];
+    char email[100], password[50];
     Patient pat;
     FILE *fp;
     int found = 0;
@@ -1266,8 +1553,8 @@ void patientLogin() {
     setColor(COLOR_CYAN);
     printf("\n+-- Enter Credentials -----------------------------------------+\n");
     resetColor();
-    printf("| Username: ");
-    scanf("%s", username);
+    printf("| Email: ");
+    scanf("%s", email);
     printf("| Password: ");
     scanf("%s", password);
     setColor(COLOR_CYAN);
@@ -1280,8 +1567,8 @@ void patientLogin() {
     fp = fopen("patients.dat", "rb");
     if(fp) {
         while(fread(&pat, sizeof(Patient), 1, fp)) {
-            if(strcmp(pat.username, username) == 0 &&
-               strcmp(pat.password, password) == 0 &&
+            if(strcmp(pat.email, email) == 0 &&
+               verifyPassword(password, pat.passwordHash) &&
                pat.active == 1) {
                 found = 1;
                 loggedInPatientId = pat.id;
@@ -1298,7 +1585,7 @@ void patientLogin() {
         SLEEP(1000);
         patientPanel();
     } else {
-        printBox("[ERROR] Invalid credentials!", COLOR_RED);
+        printBox("[ERROR] Invalid email or password!", COLOR_RED);
         SLEEP(1500);
     }
 }
@@ -1314,7 +1601,7 @@ void patientPanel() {
         setColor(COLOR_GREEN);
         printf("\nWelcome, %s\n", pat.name);
         setColor(COLOR_CYAN);
-        printf("Patient ID: %d\n", pat.id);
+        printf("Email: %s | Patient ID: %d\n", pat.email, pat.id);
         resetColor();
 
         setColor(COLOR_BLUE);
@@ -1363,7 +1650,7 @@ void viewMyProfile() {
     resetColor();
     printf("|| Patient ID: %-48d||\n", pat.id);
     printf("|| Name: %-53s||\n", pat.name);
-    printf("|| Username: %-49s||\n", pat.username);
+    printf("|| Email: %-52s||\n", pat.email);
     printf("|| Age: %-55d||\n", pat.age);
     printf("|| Gender: %-51s||\n", pat.gender);
     printf("|| Blood Group: %-46s||\n", pat.bloodGroup);
@@ -1678,6 +1965,27 @@ Patient getPatientById(int id) {
     return pat;
 }
 
+Patient getPatientByEmail(const char* email) {
+    Patient pat;
+    FILE *fp;
+
+    pat.id = 0;
+
+    fp = fopen("patients.dat", "rb");
+    if(fp) {
+        while(fread(&pat, sizeof(Patient), 1, fp)) {
+            if(strcmp(pat.email, email) == 0 && pat.active == 1) {
+                fclose(fp);
+                return pat;
+            }
+        }
+        fclose(fp);
+    }
+
+    pat.id = 0;
+    return pat;
+}
+
 Doctor getDoctorById(int id) {
     Doctor doc;
     FILE *fp;
@@ -1688,6 +1996,27 @@ Doctor getDoctorById(int id) {
     if(fp) {
         while(fread(&doc, sizeof(Doctor), 1, fp)) {
             if(doc.id == id && doc.active == 1) {
+                fclose(fp);
+                return doc;
+            }
+        }
+        fclose(fp);
+    }
+
+    doc.id = 0;
+    return doc;
+}
+
+Doctor getDoctorByEmail(const char* email) {
+    Doctor doc;
+    FILE *fp;
+
+    doc.id = 0;
+
+    fp = fopen("doctors.dat", "rb");
+    if(fp) {
+        while(fread(&doc, sizeof(Doctor), 1, fp)) {
+            if(strcmp(doc.email, email) == 0 && doc.active == 1) {
                 fclose(fp);
                 return doc;
             }
