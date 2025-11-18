@@ -57,9 +57,8 @@ typedef struct {
 
 typedef struct {
     char username[50];
-    char password[50];
+    char password[60];
 } Admin;
-
 // Global Variables
 Admin admin = {"tcm9798", "tcm@4626"};
 int loggedInDoctorId = -1;
