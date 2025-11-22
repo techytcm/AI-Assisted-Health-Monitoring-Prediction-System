@@ -231,6 +231,7 @@ int main() {
                 printf("================================================================\n");
                 printf("||  Version: 3.0 - Enhanced Security Edition                 ||\n");
                 printf("||  Developed in: C Language                                 ||\n");
+                printf("||  Developed by: TCM                                        ||\n");
                 printf("||  Features:                                                ||\n");
                 printf("||    * Improved password hashing (SHA-256)                  ||\n");
                 printf("||    * Safe input validation                                ||\n");
